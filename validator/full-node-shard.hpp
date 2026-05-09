@@ -33,6 +33,11 @@ namespace validator {
 
 namespace fullnode {
 
+namespace custom {
+class MemPoolBroadcastSink;
+}
+
+
 struct Neighbour {
   adnl::AdnlNodeIdShort adnl_id;
   td::uint32 version_major = 0;
@@ -203,6 +208,10 @@ class FullNodeShardImpl : public FullNodeShard {
 
   void set_handle(BlockHandle handle, td::Promise<td::Unit> promise) override;
 
+  void set_mempool_sink(td::actor::ActorId<custom::MemPoolBroadcastSink> sink) {
+    mempool_sink_ = sink;
+  }
+
   void start_up() override;
   void tear_down() override;
   void alarm() override;
@@ -297,6 +306,8 @@ class FullNodeShardImpl : public FullNodeShard {
   std::set<td::Bits256> my_ext_msg_broadcasts_;
   std::set<td::Bits256> processed_ext_msg_broadcasts_;
   td::Timestamp cleanup_processed_ext_msg_at_;
+
+  td::actor::ActorId<custom::MemPoolBroadcastSink> mempool_sink_;
 
   std::shared_ptr<RateLimiter<>> limiter_;
 };

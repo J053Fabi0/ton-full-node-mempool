@@ -41,6 +41,7 @@
 #include "full-node-shard-queries.hpp"
 #include "full-node-shard.hpp"
 #include "overlays.h"
+#include "custom/mempool_broadcast_sink.hpp"
 
 namespace ton {
 
@@ -173,6 +174,11 @@ void FullNodeShardImpl::process_external_message_broadcast(ton_api::tonNode_exte
     // Don't process messages that were sent by us
     promise.set_result(td::Unit());
     return;
+  }
+  // Non-blocking: forward a copy of raw BOC to mempool sink actor if configured
+  if (!mempool_sink_.empty()) {
+    td::actor::send_closure(mempool_sink_, &custom::MemPoolBroadcastSink::on_external_message,
+                            td::BufferSlice(message.message_->data_));
   }
   td::actor::send_closure(validator_manager_, &ValidatorManagerInterface::new_external_message_broadcast,
                           std::move(message.message_->data_), 0, std::move(promise));
