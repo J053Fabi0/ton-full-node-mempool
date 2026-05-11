@@ -40,7 +40,7 @@ class MemPoolBroadcastSink : public td::actor::Actor {
     void write_async(td::BufferSlice data) {
       if (!connected_) {
         if (!try_connect()) {
-          VLOG(FULL_NODE_WARNING) << "MemPoolBroadcastSink: socket not connected: " << socket_path_;
+          VLOG(ERROR) << "MemPoolBroadcastSink: socket not connected: " << socket_path_;
           return;
         }
       }
@@ -55,7 +55,7 @@ class MemPoolBroadcastSink : public td::actor::Actor {
 
       auto res = buffered_fd_.flush_write();
       if (res.is_error()) {
-        VLOG(FULL_NODE_WARNING) << "MemPoolBroadcastSink: write error: " << res.error();
+        VLOG(ERROR) << "MemPoolBroadcastSink: write error: " << res.error();
         connected_ = false;
         buffered_fd_.close();
       }
@@ -65,7 +65,7 @@ class MemPoolBroadcastSink : public td::actor::Actor {
     bool try_connect() {
       int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
       if (fd < 0) {
-        VLOG(FULL_NODE_WARNING) << "MemPoolBroadcastSink: socket() failed";
+        VLOG(ERROR) << "MemPoolBroadcastSink: socket() failed";
         return false;
       }
 
@@ -73,14 +73,14 @@ class MemPoolBroadcastSink : public td::actor::Actor {
       addr.sun_family = AF_UNIX;
       if (socket_path_.size() >= sizeof(addr.sun_path)) {
         ::close(fd);
-        VLOG(FULL_NODE_WARNING) << "MemPoolBroadcastSink: socket path too long";
+        VLOG(ERROR) << "MemPoolBroadcastSink: socket path too long";
         return false;
       }
       strncpy(addr.sun_path, socket_path_.c_str(), sizeof(addr.sun_path) - 1);
 
       if (::connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) != 0) {
         ::close(fd);
-        VLOG(FULL_NODE_DEBUG) << "MemPoolBroadcastSink: connect() failed to " << socket_path_;
+        VLOG(ERROR) << "MemPoolBroadcastSink: connect() failed to " << socket_path_;
         return false;
       }
 
@@ -88,13 +88,13 @@ class MemPoolBroadcastSink : public td::actor::Actor {
       auto r = td::SocketFd::from_native_fd(std::move(native));
       if (r.is_error()) {
         ::close(fd);
-        VLOG(FULL_NODE_WARNING) << "MemPoolBroadcastSink: from_native_fd failed: " << r.error();
+        VLOG(ERROR) << "MemPoolBroadcastSink: from_native_fd failed: " << r.error();
         return false;
       }
 
       buffered_fd_ = td::BufferedFd<td::SocketFd>(r.move_as_ok());
       connected_ = true;
-      VLOG(FULL_NODE_DEBUG) << "MemPoolBroadcastSink: connected to " << socket_path_;
+      VLOG(ERROR) << "MemPoolBroadcastSink: connected to " << socket_path_;
       return true;
     }
 
