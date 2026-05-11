@@ -12,11 +12,11 @@ namespace validator {
 namespace fullnode {
 namespace custom {
 
-class MemPoolBroadcastSink {
+class MemPoolBroadcastSink : public td::actor::Actor {
  public:
   explicit MemPoolBroadcastSink(std::string socket_path = "/tmp/ton-mempool.sock");
-  void start_up();
-  void tear_down();
+  void start_up() override;
+  void tear_down() override;
 
   // Called via td::actor::send_closure - non-blocking actor message
   void on_external_message(td::BufferSlice boc_data);

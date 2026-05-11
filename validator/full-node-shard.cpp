@@ -177,8 +177,9 @@ void FullNodeShardImpl::process_external_message_broadcast(ton_api::tonNode_exte
   }
   // Non-blocking: forward a copy of raw BOC to mempool sink actor if configured
   if (!mempool_sink_.empty()) {
+    // clone() makes a copy - avoid using deleted copy ctor
     td::actor::send_closure(mempool_sink_, &custom::MemPoolBroadcastSink::on_external_message,
-                            td::BufferSlice(message.message_->data_));
+                            message.message_->data_.clone());
   }
   td::actor::send_closure(validator_manager_, &ValidatorManagerInterface::new_external_message_broadcast,
                           std::move(message.message_->data_), 0, std::move(promise));
