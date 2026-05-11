@@ -106,6 +106,26 @@ class MemPoolBroadcastSink : public td::actor::Actor {
   std::unique_ptr<SocketWriter> writer_;
 };
 
+// Inline method definitions to keep this header header-only and avoid linker errors.
+inline MemPoolBroadcastSink::MemPoolBroadcastSink(std::string socket_path)
+    : socket_path_(std::move(socket_path)), writer_(nullptr) {
+}
+
+inline void MemPoolBroadcastSink::start_up() {
+  writer_.reset(new SocketWriter(socket_path_));
+}
+
+inline void MemPoolBroadcastSink::tear_down() {
+  writer_.reset();
+}
+
+inline void MemPoolBroadcastSink::on_external_message(td::BufferSlice boc_data) {
+  if (!writer_) {
+    writer_.reset(new SocketWriter(socket_path_));
+  }
+  writer_->write_async(std::move(boc_data));
+}
+
 }  // namespace custom
 }  // namespace fullnode
 }  // namespace validator
