@@ -1185,6 +1185,12 @@ void FullNodeShardImpl::alarm() {
 }
 
 void FullNodeShardImpl::start_up() {
+  if (!opts_.mempool_sink_socket_path_.empty()) {
+    mempool_sink_actor_ = td::actor::create_actor<custom::MemPoolBroadcastSink>(
+        "mempool-sink", opts_.mempool_sink_socket_path_);
+    mempool_sink_ = mempool_sink_actor_.get();
+  }
+
   if (client_.empty()) {
     auto X = create_hash_tl_object<ton_api::tonNode_shardPublicOverlayId>(get_workchain(), get_shard(),
                                                                           zero_state_file_hash_);
@@ -1204,6 +1210,8 @@ void FullNodeShardImpl::start_up() {
 }
 
 void FullNodeShardImpl::tear_down() {
+  mempool_sink_ = {};
+  mempool_sink_actor_ = {};
   td::actor::send_closure(overlays_, &ton::overlay::Overlays::delete_overlay, adnl_id_, overlay_id_);
 }
 

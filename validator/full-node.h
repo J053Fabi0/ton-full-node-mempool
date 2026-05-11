@@ -58,6 +58,7 @@ struct FullNodeConfig {
 
 struct FullNodeOptions {
   FullNodeConfig config_;
+  std::string mempool_sink_socket_path_;
   double public_broadcast_speed_multiplier_ = 1.0;
   double private_broadcast_speed_multiplier_ = 1.0;
   double fast_sync_broadcast_speed_multiplier_ = 1.0;

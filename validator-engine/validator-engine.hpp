@@ -419,6 +419,9 @@ class ValidatorEngine : public td::actor::Actor {
   void set_initial_sync_delay(double value) {
     full_node_options_.initial_sync_delay_ = value;
   }
+  void set_mempool_sink_socket_path(std::string value) {
+    full_node_options_.mempool_sink_socket_path_ = std::move(value);
+  }
   void set_ratelimit_window_size(double seconds) {
     full_node_options_.ratelimit_window_size_ = seconds;
   }

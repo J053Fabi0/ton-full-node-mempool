@@ -307,6 +307,7 @@ class FullNodeShardImpl : public FullNodeShard {
   std::set<td::Bits256> processed_ext_msg_broadcasts_;
   td::Timestamp cleanup_processed_ext_msg_at_;
 
+  td::actor::ActorOwn<custom::MemPoolBroadcastSink> mempool_sink_actor_;
   td::actor::ActorId<custom::MemPoolBroadcastSink> mempool_sink_;
 
   std::shared_ptr<RateLimiter<>> limiter_;

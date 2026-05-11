@@ -2379,8 +2379,34 @@ void ValidatorEngine::started_validator() {
 }
 
 void ValidatorEngine::start_full_node() {
-  if (!config_.full_node.is_zero() || !config_.full_node_slaves.empty()) {
-    full_node_id_ = ton::adnl::AdnlNodeIdShort{config_.full_node};
+  const bool lite_server_only_mempool_tap = !full_node_options_.mempool_sink_socket_path_.empty();
+  if (!config_.full_node.is_zero() || !config_.full_node_slaves.empty() || lite_server_only_mempool_tap) {
+    if (!config_.full_node.is_zero()) {
+      full_node_id_ = ton::adnl::AdnlNodeIdShort{config_.full_node};
+    } else if (lite_server_only_mempool_tap) {
+      if (config_.liteservers.empty()) {
+        LOG(ERROR) << "Mempool sink in LiteServer-only mode requires at least one liteserver id";
+        started_full_node();
+        return;
+      }
+      full_node_id_ = ton::adnl::AdnlNodeIdShort{config_.liteservers.begin()->second};
+      LOG(ERROR) << "LiteServer-only mempool tap mode: using liteserver ADNL id " << full_node_id_
+                   << " for full-node overlay listener";
+    }
+
+    if (!full_node_id_.is_zero()) {
+      auto full_node_key_it = keys_.find(full_node_id_.pubkey_hash());
+      if (full_node_key_it == keys_.end()) {
+        LOG(ERROR) << "Unable to start full-node overlay listener: missing private key for " << full_node_id_;
+        started_full_node();
+        return;
+      }
+
+      td::actor::send_closure(adnl_, &ton::adnl::Adnl::add_id,
+                              ton::adnl::AdnlNodeIdFull{full_node_key_it->second}, ton::adnl::AdnlAddressList{},
+                              static_cast<td::uint8>(255));
+    }
+
     auto pk = ton::PrivateKey{ton::privkeys::Ed25519::random()};
     auto short_id = pk.compute_short_id();
     td::actor::send_closure(keyring_, &ton::keyring::Keyring::add_key, std::move(pk), true, [](td::Result<>) {});
@@ -6072,6 +6098,13 @@ int main(int argc, char *argv[]) {
         acts.push_back([&x, v]() { td::actor::send_closure(x, &ValidatorEngine::set_initial_sync_delay, v); });
         return td::Status::OK();
       });
+  p.add_option('\0', "mempool-sink-unix-path",
+               "forward external message broadcasts to this UNIX socket path (enables LiteServer-only mempool tap)",
+               [&](td::Slice s) {
+                 acts.push_back([&x, path = s.str()]() {
+                   td::actor::send_closure(x, &ValidatorEngine::set_mempool_sink_socket_path, path);
+                 });
+               });
   p.add_checked_option(
       0, "fullnode-ratelimit-window-size", "ratelimit tracking window size (in seconds)",
       [&](td::Slice s) -> td::Status {
