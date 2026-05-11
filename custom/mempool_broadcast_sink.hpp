@@ -51,7 +51,7 @@ class MemPoolBroadcastSink : public td::actor::Actor {
       memcpy(lenbuf, &be_len, 4);
 
       buffered_fd_.output_buffer().append(td::BufferSlice(lenbuf, 4));
-      buffered_fd_.output_buffer().append(data);
+      buffered_fd_.output_buffer().append(data.clone());
 
       auto res = buffered_fd_.flush_write();
       if (res.is_error()) {
